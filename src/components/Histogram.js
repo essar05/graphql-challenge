@@ -1,11 +1,12 @@
 import React, { Component } from 'react';
 import { GET_POSTS } from '../queries/Posts';
-import { graphql } from "react-apollo";
+import { graphql } from 'react-apollo';
+import BarGraph from './BarGraph'
 
 class Histogram extends Component {
 
   state = {
-    postsCount: {}
+    postsCount: []
   };
 
   componentDidUpdate(prevProps) {
@@ -20,29 +21,49 @@ class Histogram extends Component {
       return;
     }
 
-    const postsCount = {};
+    const postsCount = [];
 
     posts.forEach((post) => {
       const dateCreated = new Date(post.createdAt);
       const year = dateCreated.getFullYear();
       const month = dateCreated.getMonth();
 
-      if(!postsCount.hasOwnProperty(year)) {
-        postsCount[year] = {
-          [month]: 0
-        };
+      let index = postsCount.findIndex((value) => value.year === year && value.month === month);
+
+      if(index === -1) {
+        postsCount.push({
+          year: year,
+          month: month,
+          count: 0
+        });
+        index = postsCount.length - 1;
       }
 
-      if(!postsCount[year].hasOwnProperty(month)) {
-        postsCount[year][month] = 0;
+      postsCount[index].count++;
+    });
+
+    postsCount.sort((a, b) => {
+      if(a.year < b.year) {
+        return -1;
+      }
+      if(a.year > b.year) {
+        return 1;
+      }
+      if(a.year === b.year) {
+        if(a.month < b.month) {
+          return -1;
+        }
+        if(a.month > b.month) {
+          return 1;
+        }
       }
 
-      postsCount[year][month]++;
+      return 0;
+    });
 
-      this.setState({
-        ...this.state,
-        postsCount: postsCount
-      });
+    this.setState({
+      ...this.state,
+      postsCount: postsCount
     });
   }
 
@@ -52,11 +73,17 @@ class Histogram extends Component {
     if(data.loading) {
       return (
         <div>Loading...</div>
-      )
+      );
     }
 
+    console.log(this.state.postsCount);
+
     return (
-        <div>{data.allPosts.length}</div>
+        <div className="histogram-container">
+          <div className="histogram">
+            <BarGraph width={800} height={500} data={this.state.postsCount} />
+          </div>
+        </div>
     );
   }
 }
